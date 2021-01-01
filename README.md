@@ -25,12 +25,12 @@ There are some useful information and some caveats for us to consider:
 4.	Caveats for point 2: not all binding are regulatory. This is easy to understand, if we think of binding as a thermodynamic event. But perhaps we need to be even more careful when we say that regulatory bindings are those with high affinity. There are some notable exceptions, but I need to look into my books to say anything concrete.
 
 
-When we think about this problem, we imagine we have a modeling scheme that can roughly be divided into 2 steps:
+When we think about this problem, we imagine a modeling scheme that can roughly be divided into 2 steps:
 
 * For a particular gene of interest, we want to sample the “true” TF, i.e. regulating TF as a subset of TFs that bind near the gene. The sampling may have a weight proportional to the binding affinity, so that TFs with high binding affinity are more likely to be sampled. Moreover, in simple organism like *E. coli*, there shouldn’t be more than a couple of TFs being “true” TF for a gene.
 * Once we have sampled the “true” TFs, we want to establish a “correlation” between the “true” TFs and the gene. In other words, we want something that we can conclude with, say, “when TF A is high and TF B is low, the gene is high; when TF A is low and TF B…”.
 
-This sounds awfully like an MCMC sampling scheme coupled with a binary tree. But at the time we don’t know how to probabilistically represent a tree. So, we looked around and found a paper of about my age (I hope) that provides a good starting point for us:
+This sounds awfully like an MCMC sampling scheme coupled with a binary tree. But at the time we don’t know how to probabilistically represent a tree. So, we looked around and found a paper of about my age (I hope) that provided a good starting point for us:
 
 > Hugh A. Chipman , Edward I. George & Robert E. McCulloch (1998) Bayesian CART Model Search, Journal of the American Statistical Association, 93:443, 935-948, DOI: 10.1080/01621459.1998.10473750
 
@@ -62,7 +62,7 @@ And the posterior of the tree is simply:
 
 ![f](http://chart.apis.google.com/chart?cht=tx&chl=$P(T|X,Y){\propto}P(Y|X,T)P(T)$)
 
-To use MCMC to sample from the posterior, the authors proposed a few ways to propose new trees in sampling kernel, but we have only implemented the following 3: 
+To use MCMC to sample from the posterior, the authors proposed a few ways to propose new trees as the sampling kernel, but we have only implemented the following 3: 
 * **Grow**: randomly pick a leaf node and split. In our case, we pick a leaf node and sample a TF to split it. If that TF has appeared in the ancestors of the leaf, we record down the splitting value at that ancestor, and sample a splitting value at the leaf different from that ancestral value. Also, we do not pick value that will result in a leaf with less than n data samples. Default setting of n is 20.
 * **Prune**: close two leaf nodes and make their parent a new leaf.
 * **Change**: pick an internal node and reassign a splitting rule. Similar to what we implement in Grow step, we ensure the resampled TF and splitting value have not occurred in the nodes among ancestors and offspring, and resampling will not result in leaf with too few samples.
@@ -70,9 +70,9 @@ To use MCMC to sample from the posterior, the authors proposed a few ways to pro
 
 ## Our Modification
 
-Clearly, we can specify the likelihood function at the leaves however we want, and if we use a conjugate prior for its parameters, we hardly need to change the whole scheme at all. A simple modification we did was to have a linear regression with Gaussian noise at each leaf. The regressors are all the ancestors of the leaf. Statistically there is not much change, as we still specify a normal-inverse-gamma prior and calculate marginal likelihood in closed form. But now we have a very neat biological interpretation for the linear regression: since a leaf is a region specified by binary decisions of the tree, say “TF A is high and TF B is low”, the regression coefficient of TF A and TF B tells us their relationship with the target gene in that confined region.
+Clearly, we can specify the likelihood function at the leaves however we want, and if we use a conjugate prior for its parameters, we hardly need to change the whole scheme at all. A simple modification we did was to have a linear regression with Gaussian noise at each leaf. The regressors are all the ancestors of the leaf. Statistically there is little change, as we still specify a normal-inverse-gamma prior and derive the marginal likelihood in closed form. But now we have a very neat biological interpretation for the linear regression: since a leaf is a region specified by binary decisions of the tree, say “TF A is high and TF B is low”, the regression coefficient of TF A and TF B tells us their relationship with the target gene in that confined region.
 
-Because of the outrageously poor support of LaTeX equations here, we don't show the derivation details. But again, there are many resources on deriving the marginal likelihood of Bayesian linear model. As an example, we found this derivation pretty clear:
+Because of the outrageously poor support of LaTeX here, we don't show the derivation details. But again, there are many resources on deriving the marginal likelihood of Bayesian linear model. As an example, we found this derivation pretty clear:
 
 > http://www.biostat.umn.edu/~ph7440/pubh7440/BayesianLinearModelGoryDetails.pdf
 
@@ -152,11 +152,11 @@ Obviously when the tree uses more than 2 TFs, we cannot visualize it as in a 3D 
 
 ![Tree violin plot](/img/img4.png)
 
-Here each node has a violin plot of the distribution of the target gene. The black outline are the distribution of all data samples, and the colored part are the distribution of data samples that passed through the node. Each node has a title indicating the node ID, decision feature (TF name) and decision value.
+Here each node has a violin plot of the distribution of the target gene. The black outline are the distribution of all data samples, and the colored part are the distribution of data samples that passed through the node. Each node has a title indicating the node ID, decision feature (TF name) and decision value. So in this plot, the mean of gene is 8.43 when TFE is higher than 5.82 and TFD lower than 4.61.
 
 ## Final Comments
 
 There are a couple of unpleasant things about this model, to name a few:
 
-* Mixing is very slow. This is alluded to in the original paper, but in our case, only a few dozens of proposed trees are accepted in an MCMC run of a few thousand iterations. The acceptance rate is so low that we hardly think the MCMC is sampling the mode region of the posterior, but rather, becoming an algorithm trying to **search for MAP** from the posterior.
-* Although reducing a tree into a probability is nice for computation, we cannot really get a distribution of trees from the posterior. The posterior distribution, if we can find, represents trees of all kinds, with different number of nodes and edges. It would be easy to find the average from the posterior distribution, but hard to find the "average" tree from the posterior. This is particularly unpleasant given we are working in Bayesian framework.   
+* Mixing is very slow. This is alluded to in the original paper, but in our case, only a few dozens of proposed trees are accepted in an MCMC run of a few thousand iterations. The acceptance rate is so low that we hardly think the MCMC is sampling the mode region of the posterior. Instead, it becomes more of an algorithm trying to **search for MAP** from the posterior.
+* Although reducing a tree into a probability measure is nice for computation, we cannot really get a distribution of trees from the posterior. The posterior distribution, if we can find, represents trees of all kinds, with different number of nodes and edges. It would be easy to find the average from the posterior distribution, but hard to find the "average" tree from the posterior. This is particularly unpleasant given we are working in Bayesian framework.   
