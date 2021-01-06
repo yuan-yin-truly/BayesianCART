@@ -16,7 +16,7 @@ The question we are concerned with is as follows:
 
 There are some useful information and some caveats for us to consider:
 
-1. RNASeq data reveals the **activity level** of TFs and genes in their mRNA form. This is useful, as we may expect some “correlation” between a TF and a gene when the TF is a true regulator of the gene. For example, if TF X is an activator for gene Y, we may expect a high X correspond to high Y.
+1. RNASeq data reveals the **activity level** of TFs and genes in their mRNA form. This is useful, as we may expect some “correlation” between a TF and a gene when the TF is a true regulator of the gene. For example, if TF X is an activator for gene Y, we may expect a high X corresponding to a high Y.
 
 2. Caveats for point 1: TF regulates gene in the form of protein, not mRNA, so it is really just an approximation in using RNASeq data to represent the TF’s activity level. For TFs that require post-translational modification to become active, this approximation will be bad.
 
@@ -27,7 +27,7 @@ There are some useful information and some caveats for us to consider:
 
 When we think about this problem, we imagine a modeling scheme that can roughly be divided into 2 steps:
 
-* For a particular gene of interest, we want to sample the “true” TF, i.e. regulating TF as a subset of TFs that bind near the gene. The sampling may have a weight proportional to the binding affinity, so that TFs with high binding affinity are more likely to be sampled. Moreover, in simple organism like *E. coli*, there shouldn’t be more than a couple of TFs being “true” TF for a gene.
+* For a target gene, we want to sample the “true” TFs, i.e. regulating TFs as a subset of candidate TFs. The candidate TFs would be all TFs that bind near the gene. The sampling may have a weight proportional to the binding affinity, so that TFs with high binding affinity are more likely to be sampled. Moreover, in simple organism like *E. coli*, there shouldn’t be more than a couple of TFs being “true” TF for a gene, since we do not expect complex regulation in simple organisms.
 * Once we have sampled the “true” TFs, we want to establish a “correlation” between the “true” TFs and the gene. In other words, we want something that we can conclude with, say, “when TF A is high and TF B is low, the gene is high; when TF A is low and TF B…”.
 
 This sounds awfully like an MCMC sampling scheme coupled with a binary tree. But at the time we don’t know how to probabilistically represent a tree. So, we looked around and found a paper of about my age (I hope) that provided a good starting point for us:
@@ -156,7 +156,7 @@ Here each node has a violin plot of the distribution of the target gene. The bla
 
 ## Final Comments
 
-There are a couple of unpleasant things about this model, to name a few:
+There are a couple of unpleasant things about this model. Here we name two:
 
 * Mixing is very slow. This is alluded to in the original paper, but in our case, only a few dozens of proposed trees are accepted in an MCMC run of a few thousand iterations. The acceptance rate is so low that we hardly think the MCMC is sampling the mode region of the posterior. Instead, it becomes more of an algorithm trying to **search for MAP** from the posterior.
-* Although reducing a tree into a probability measure is nice for computation, we cannot really get a distribution of trees from the posterior. The posterior distribution, if we can find, represents trees of all kinds, with different number of nodes and edges. It would be easy to find the average from the posterior distribution, but hard to find the "average" tree from the posterior. This is particularly unpleasant given we are working in Bayesian framework.   
+* Although reducing a tree into a probability measure is nice for computation, we cannot really get a distribution of trees from the posterior. The posterior distribution, if we can find, represents trees of all kinds, with different number of nodes and edges. It would be easy to find the average(expectation) from the posterior distribution, but hard to find the "average" tree from the posterior. This is particularly unpleasant given we are working in Bayesian framework, although this makes the previous point less unpleasant. 
