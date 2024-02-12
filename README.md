@@ -1,3 +1,4 @@
+[![DOI](https://zenodo.org/badge/342649594.svg)](https://zenodo.org/doi/10.5281/zenodo.10648564)
 # A Bayesian CART for Modeling Gene Regulation Using Multiple High-Throughput Sequencing Data
 
 
